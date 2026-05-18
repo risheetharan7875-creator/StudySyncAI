@@ -140,6 +140,8 @@ loginBtn.addEventListener(
             profileSectionUserName.textContent =
                 result.user.displayName;
 
+            loadTasks();
+
             console.log(
                 "Login Successful"
             );
@@ -169,6 +171,12 @@ logoutBtn.addEventListener(
         profileSectionUserName.textContent =
             "Not Logged In";
 
+        taskList.innerHTML = "";
+
+        tasks = [];
+        
+        renderAnalyticsChart();
+        
         console.log(
             "Logged Out"
         );
@@ -210,6 +218,8 @@ navLinks.forEach(link => {
 
 async function loadTasks() {
 
+    if (!auth.currentUser) return;
+
     taskList.innerHTML = "";
 
     tasks = [];
@@ -220,7 +230,14 @@ async function loadTasks() {
     let overdueCount = 0;
 
     const querySnapshot =
-        await getDocs(collection(db, "tasks"));
+        await getDocs(
+            collection(
+                db,
+                "users",
+                auth.currentUser.uid,
+                "tasks"
+            )
+        );
 
     querySnapshot.forEach((taskDoc) => {
 
@@ -311,7 +328,13 @@ async function loadTasks() {
         .addEventListener("click", async () => {
 
             await updateDoc(
-                doc(db, "tasks", taskDoc.id),
+                doc(
+                    db,
+                    "users",
+                    auth.currentUser.uid,
+                    "tasks",
+                    taskDoc.id
+                ),
                 {
                     completed: !task.completed
                 }
@@ -342,7 +365,13 @@ async function loadTasks() {
                 );
 
             await updateDoc(
-                doc(db, "tasks", taskDoc.id),
+                doc(
+                    db,
+                    "users",
+                    auth.currentUser.uid,
+                    "tasks",
+                    taskDoc.id
+                ),
                 {
                     title: newTitle,
                     dueDate: newDueDate,
@@ -357,8 +386,15 @@ async function loadTasks() {
         li.querySelector(".delete-btn")
         .addEventListener("click", async () => {
 
-            await deleteDoc(doc(db, "tasks", taskDoc.id));
-
+            await deleteDoc(
+                doc(
+                    db,
+                    "users",
+                    auth.currentUser.uid,
+                    "tasks",
+                    taskDoc.id
+                )
+            );
             loadTasks();
         });
 
@@ -506,7 +542,14 @@ window.addTask = async function () {
     const taskTitle = input.value.trim();
     if (taskTitle === "") return;
 
-    await addDoc(collection(db, "tasks"), {
+    await addDoc(
+        collection(
+            db,
+            "users",
+            auth.currentUser.uid,
+            "tasks"
+        ),
+    {
 
         title: taskTitle,
 

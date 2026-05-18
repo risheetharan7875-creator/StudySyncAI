@@ -12,6 +12,8 @@ import {
     signOut
 } from "./firebase.js";
 
+import { GROQ_API_KEY } from "./config.js";
+
 const taskList = document.getElementById("taskList");
 
 const totalTasks = document.getElementById("totalTasks");
@@ -22,6 +24,12 @@ const productivityRate = document.getElementById("productivityRate");
 const productivityMessage = document.getElementById("productivityMessage");
 
 const aiTip = document.getElementById("aiTip");
+const analyticsTotalTasks = document.getElementById("analyticsTotalTasks");
+const analyticsCompletedTasks = document.getElementById("analyticsCompletedTasks");
+const analyticsPendingTasks = document.getElementById("analyticsPendingTasks");
+const analyticsProductivityRate = document.getElementById("analyticsProductivityRate");
+const analyticsProductivityMessage = document.getElementById("analyticsProductivityMessage");
+const analyticsAiTip = document.getElementById("analyticsAiTip");
 
 //AUTH ELEMENTS
 
@@ -29,7 +37,30 @@ const loginBtn = document.getElementById("loginBtn");
 
 const logoutBtn = document.getElementById("logoutBtn");
 
-const userName = document.getElementById("userName");
+const askAIBtn = document.getElementById("askAIBtn");
+
+const aiPrompt = document.getElementById("aiPrompt");
+
+const aiResponse = document.getElementById("aiResponse");
+
+const aiMode = document.getElementById("aiMode");
+
+const profileUserName = document.getElementById("profileUserName");
+const profileSectionUserName = document.getElementById("profileSectionUserName");
+
+const profileTotalTasks = document.getElementById("profileTotalTasks");
+
+const profileCompletedTasks = document.getElementById("profileCompletedTasks");
+
+const profileProductivityRate = document.getElementById("profileProductivityRate");
+
+const deadlineReminder = document.getElementById("deadlineReminder");
+
+// GLOBAL TASK ARRAY
+let tasks = [];
+
+// NAVIGATION LINKS
+const navLinks = document.querySelectorAll(".nav-links a");
 
 // ==========================
 // SMART AI ASSISTANT
@@ -103,7 +134,10 @@ loginBtn.addEventListener(
                     provider
                 );
 
-            userName.textContent =
+            profileUserName.textContent =
+                result.user.displayName;
+
+            profileSectionUserName.textContent =
                 result.user.displayName;
 
             console.log(
@@ -129,7 +163,10 @@ logoutBtn.addEventListener(
 
         await signOut(auth);
 
-        userName.textContent =
+        profileUserName.textContent =
+            "Not Logged In";
+
+        profileSectionUserName.textContent =
             "Not Logged In";
 
         console.log(
@@ -139,12 +176,43 @@ logoutBtn.addEventListener(
 );
 
 // ==========================
+// SECTION NAVIGATION
+// ==========================
+
+navLinks.forEach(link => {
+
+    link.addEventListener("click", function(e) {
+
+        e.preventDefault();
+
+        const targetSection =
+            this.getAttribute("data-section");
+
+        document
+            .querySelectorAll("section")
+            .forEach(section => {
+
+                section.style.display = "none";
+
+            });
+
+        document.getElementById(
+            targetSection
+        ).style.display = "block";
+
+    });
+
+});
+
+// ==========================
 // LOAD TASKS
 // ==========================
 
 async function loadTasks() {
 
     taskList.innerHTML = "";
+
+    tasks = [];
 
     let total = 0;
     let completed = 0;
@@ -157,6 +225,7 @@ async function loadTasks() {
     querySnapshot.forEach((taskDoc) => {
 
         const task = taskDoc.data();
+        tasks.push(task);
         const today = new Date().toISOString().split("T")[0];
 
         const isOverdue =
@@ -312,11 +381,25 @@ async function loadTasks() {
     productivityRate.textContent =
         percentage + "%";
 
+    analyticsTotalTasks.textContent = total;
+    analyticsCompletedTasks.textContent = completed;
+    analyticsPendingTasks.textContent = total - completed;
+    analyticsProductivityRate.textContent = percentage + "%";
+
+    profileTotalTasks.textContent = total;
+
+    profileCompletedTasks.textContent = completed;
+
+    profileProductivityRate.textContent =
+        percentage + "%";
+
     // PRODUCTIVITY MESSAGE
 
     if (percentage === 0) {
 
         productivityMessage.textContent =
+            "Let's get started 🚀";
+        analyticsProductivityMessage.textContent =
             "Let's get started 🚀";
 
     }
@@ -324,11 +407,15 @@ async function loadTasks() {
 
         productivityMessage.textContent =
             "Good progress 🔥";
+        analyticsProductivityMessage.textContent =
+            "Good progress 🔥";
 
     }
     else if (percentage < 100) {
 
         productivityMessage.textContent =
+            "Excellent productivity 🌟";
+        analyticsProductivityMessage.textContent =
             "Excellent productivity 🌟";
 
     }
@@ -336,17 +423,68 @@ async function loadTasks() {
 
         productivityMessage.textContent =
             "Perfect completion 🏆";
+        analyticsProductivityMessage.textContent =
+            "Perfect completion 🏆";
 
     }
 
     // AI ANALYSIS
 
-    aiTip.textContent =
-        generateAITip(
+    const aiText = generateAITip(
             total,
             completed,
             overdueCount
         );
+
+    aiTip.textContent = aiText;
+    analyticsAiTip.textContent = aiText;
+
+    if (overdueCount > 0) {
+
+        deadlineReminder.textContent =
+            `⚠️ You have ${overdueCount} overdue task(s)`;
+
+    }
+    else {
+
+        const upcomingTasks =
+            tasks.filter(task => {
+
+                if (!task.dueDate || task.completed) {
+                    return false;
+                }
+
+                const today =
+                    new Date();
+
+                const due =
+                    new Date(task.dueDate);
+
+                const diff =
+                    Math.ceil(
+                        (due - today)
+                        / (1000 * 60 * 60 * 24)
+                    );
+
+                return diff <= 3 && diff >= 0;
+            });
+
+        if (upcomingTasks.length > 0) {
+
+            deadlineReminder.textContent =
+                `⏰ ${upcomingTasks.length} task(s) due soon`;
+
+        }
+        else {
+
+            deadlineReminder.textContent =
+                "✅ All tasks are on track";
+
+        }
+    }
+
+renderAnalyticsChart();
+
 }
 
 
@@ -365,11 +503,12 @@ window.addTask = async function () {
     const priority =
         document.getElementById("priority");
 
-    if(input.value === "") return;
+    const taskTitle = input.value.trim();
+    if (taskTitle === "") return;
 
     await addDoc(collection(db, "tasks"), {
 
-        title: input.value,
+        title: taskTitle,
 
         dueDate: dueDate.value,
 
@@ -391,3 +530,292 @@ window.addTask = async function () {
 // ==========================
 
 loadTasks();
+
+// ==========================
+// POMODORO TIMER
+// ==========================
+
+let timer;
+let timeLeft = 25 * 60;
+let isRunning = false;
+let isBreak = false;
+
+const timerDisplay =
+    document.getElementById("timerDisplay");
+
+const startTimerBtn =
+    document.getElementById("startTimerBtn");
+
+const pauseTimerBtn =
+    document.getElementById("pauseTimerBtn");
+
+const resetTimerBtn =
+    document.getElementById("resetTimerBtn");
+
+
+function updateTimerDisplay() {
+
+    const minutes =
+        Math.floor(timeLeft / 60);
+
+    const seconds =
+        timeLeft % 60;
+
+    timerDisplay.textContent =
+        `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+
+function startTimer() {
+
+    if (isRunning) return;
+
+    isRunning = true;
+
+    timer = setInterval(() => {
+
+        timeLeft--;
+
+        updateTimerDisplay();
+
+        if (timeLeft <= 0) {
+
+            clearInterval(timer);
+
+            isRunning = false;
+
+            if (!isBreak) {
+
+                alert("Focus session complete! Break time.");
+
+                timeLeft = 5 * 60;
+                isBreak = true;
+
+            } else {
+
+                alert("Break complete! Back to focus.");
+
+                timeLeft = 25 * 60;
+                isBreak = false;
+            }
+
+            updateTimerDisplay();
+        }
+
+    }, 1000);
+}
+
+
+function pauseTimer() {
+
+    clearInterval(timer);
+
+    isRunning = false;
+}
+
+
+function resetTimer() {
+
+    clearInterval(timer);
+
+    isRunning = false;
+
+    isBreak = false;
+
+    timeLeft = 25 * 60;
+
+    updateTimerDisplay();
+}
+
+
+startTimerBtn.addEventListener(
+    "click",
+    startTimer
+);
+
+pauseTimerBtn.addEventListener(
+    "click",
+    pauseTimer
+);
+
+resetTimerBtn.addEventListener(
+    "click",
+    resetTimer
+);
+
+
+updateTimerDisplay();
+
+// ==========================
+// ANALYTICS CHART
+// ==========================
+
+const chartCanvas =
+    document.getElementById("analyticsChart");
+
+let analyticsChart;
+
+function renderAnalyticsChart() {
+
+    const completed =
+        tasks.filter(task => task.completed).length;
+
+    const pending =
+        tasks.length - completed;
+
+    if (analyticsChart) {
+        analyticsChart.destroy();
+    }
+
+    analyticsChart = new Chart(chartCanvas, {
+
+        type: "bar",
+
+        data: {
+            labels: ["Completed", "Pending"],
+
+            datasets: [{
+                label: "Task Status",
+                data: [completed, pending],
+                backgroundColor: [
+                    "#22c55e",
+                    "#3b82f6"
+                ],
+                borderRadius: 12
+            }]
+        },
+
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        color: "white"
+                    },
+                    grid: {
+                        color: "rgba(255,255,255,0.1)"
+                    }
+                },
+
+                x: {
+                    ticks: {
+                        color: "white"
+                    },
+                    grid: {
+                        color: "rgba(255,255,255,0.1)"
+                    }
+                }
+            },
+
+            plugins: {
+                legend: {
+                    labels: {
+                        color: "white"
+                    }
+                }
+            }
+        }
+    });
+}
+
+// ==========================
+// GROQ AI ASSISTANT
+// ==========================
+
+window.askAI = async function () {
+
+    console.log("AI button clicked");
+    
+    const prompt = aiPrompt.value.trim();
+
+    if (!prompt) {
+        alert("Please enter a question.");
+        return;
+    }
+
+    aiResponse.innerHTML =
+        `<div class="spinner"></div>`;
+
+    try {
+
+        const mode = aiMode.value;
+
+        let systemPrompt = "";
+
+        if (mode === "explain") {
+
+            systemPrompt =
+                "Explain concepts clearly and simply for students.";
+
+        }
+        else if (mode === "summarize") {
+
+            systemPrompt =
+                "Summarize study notes into concise key points.";
+
+        }
+        else if (mode === "quiz") {
+
+            systemPrompt =
+                "Generate quiz questions with answers for revision.";
+
+        }
+        else if (mode === "tips") {
+
+            systemPrompt =
+                "Provide practical and effective study advice for students.";
+
+        }
+
+        const response = await fetch(
+            "https://api.groq.com/openai/v1/chat/completions",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${GROQ_API_KEY}`
+                },
+
+                body: JSON.stringify({
+                    model: "llama-3.3-70b-versatile",
+
+                    messages: [
+                        {
+                            role: "system",
+                            content: systemPrompt
+                        },
+                        {
+                            role: "user",
+                            content: prompt
+                        }
+                    ]
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        console.log(data);
+
+        if (!response.ok) {
+            aiResponse.textContent =
+                "API Error: " + data.error.message;
+            return;
+        }
+
+        aiResponse.textContent =
+            data.choices[0].message.content;
+
+    }
+    catch (error) {
+
+        console.log(error);
+
+        aiResponse.textContent =
+            "AI request failed.";
+    }
+}

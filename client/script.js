@@ -17,21 +17,28 @@ import { GROQ_API_KEY } from "./config.js";
 const taskList = document.getElementById("taskList");
 
 const totalTasks = document.getElementById("totalTasks");
+
 const completedTasks = document.getElementById("completedTasks");
+
 const pendingTasks = document.getElementById("pendingTasks");
+
 const productivityRate = document.getElementById("productivityRate");
 
 const productivityMessage = document.getElementById("productivityMessage");
 
 const aiTip = document.getElementById("aiTip");
-const analyticsTotalTasks = document.getElementById("analyticsTotalTasks");
-const analyticsCompletedTasks = document.getElementById("analyticsCompletedTasks");
-const analyticsPendingTasks = document.getElementById("analyticsPendingTasks");
-const analyticsProductivityRate = document.getElementById("analyticsProductivityRate");
-const analyticsProductivityMessage = document.getElementById("analyticsProductivityMessage");
-const analyticsAiTip = document.getElementById("analyticsAiTip");
 
-//AUTH ELEMENTS
+const analyticsTotalTasks = document.getElementById("analyticsTotalTasks");
+
+const analyticsCompletedTasks = document.getElementById("analyticsCompletedTasks");
+
+const analyticsPendingTasks = document.getElementById("analyticsPendingTasks");
+
+const analyticsProductivityRate = document.getElementById("analyticsProductivityRate");
+
+const analyticsProductivityMessage = document.getElementById("analyticsProductivityMessage");
+
+const analyticsAiTip = document.getElementById("analyticsAiTip");
 
 const loginBtn = document.getElementById("loginBtn");
 
@@ -45,7 +52,12 @@ const aiResponse = document.getElementById("aiResponse");
 
 const aiMode = document.getElementById("aiMode");
 
+const customMinutes = document.getElementById("customMinutes");
+
+const timerMessage = document.getElementById("timerMessage");
+
 const profileUserName = document.getElementById("profileUserName");
+
 const profileSectionUserName = document.getElementById("profileSectionUserName");
 
 const profileTotalTasks = document.getElementById("profileTotalTasks");
@@ -579,7 +591,8 @@ loadTasks();
 // ==========================
 
 let timer;
-let timeLeft = 25 * 60;
+let defaultMinutes = 25;
+let timeLeft = defaultMinutes * 60;
 let isRunning = false;
 let isBreak = false;
 
@@ -613,6 +626,17 @@ function startTimer() {
 
     if (isRunning) return;
 
+    if (customMinutes.value) {
+
+        defaultMinutes =
+            parseInt(customMinutes.value);
+
+        timeLeft =
+            defaultMinutes * 60;
+    }
+
+    timerMessage.textContent = "";
+
     isRunning = true;
 
     timer = setInterval(() => {
@@ -627,22 +651,22 @@ function startTimer() {
 
             isRunning = false;
 
-            if (!isBreak) {
+            const messages = [
+                "🎉 Excellent work! You completed your session.",
+                "🔥 Great focus! Keep up the momentum.",
+                "🏆 Well done! Another productive session completed.",
+                "✨ You made it! Consistency builds success."
+            ];
 
-                alert("Focus session complete! Break time.");
+            const randomMessage =
+                messages[
+                    Math.floor(
+                        Math.random() * messages.length
+                    )
+                ];
 
-                timeLeft = 5 * 60;
-                isBreak = true;
-
-            } else {
-
-                alert("Break complete! Back to focus.");
-
-                timeLeft = 25 * 60;
-                isBreak = false;
-            }
-
-            updateTimerDisplay();
+            timerMessage.textContent =
+                randomMessage;
         }
 
     }, 1000);
@@ -663,9 +687,10 @@ function resetTimer() {
 
     isRunning = false;
 
-    isBreak = false;
+    timeLeft =
+        defaultMinutes * 60;
 
-    timeLeft = 25 * 60;
+    timerMessage.textContent = "";
 
     updateTimerDisplay();
 }

@@ -229,7 +229,16 @@
             <section id="timerSection" style="display:none;">
                 <h2>Pomodoro Timer</h2>
 
+                <input
+                    type="number"
+                    id="customMinutes"
+                    placeholder="Enter study minutes"
+                    min="1"
+                >
+
                 <h1 id="timerDisplay">25:00</h1>
+
+                <p id="timerMessage"></p>
 
                 <button id="startTimerBtn">Start</button>
                 <button id="pauseTimerBtn">Pause</button>

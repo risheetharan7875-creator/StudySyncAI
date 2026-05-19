@@ -86,6 +86,9 @@ Supports 4 intelligent study modes:
 * 5-minute break session
 * Start / Pause / Reset controls
 * Smooth timer transitions
+* Custom user-defined study session duration
+* Motivational completion feedback
+* Flexible focus timing system
 
 ---
 
